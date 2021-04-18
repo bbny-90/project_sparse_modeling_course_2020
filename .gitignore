@@ -139,3 +139,4 @@ cython_debug/
 
 raw_data
 2d_array_images
+.DS_Store

@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from skimage.transform import resize
+import cvxpy as cvx
 in_folder = "2d_array_images/"
 num_total_data = 300
 lamda = .01
@@ -47,7 +48,7 @@ train_data = all_data_downsampled[0:train_indx, meas_indx]
 target_field_id = train_indx+ 10
 y = all_data_downsampled[target_field_id, meas_indx]
 
-import cvxpy as cvx
+
 w = cvx.Variable(train_data.shape[0])
 loss = cvx.sum_squares(train_data.T @ w - y )/2 + lamda * cvx.norm(w,1)
 
