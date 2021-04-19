@@ -3,10 +3,8 @@ import matplotlib.pyplot as plt
 from matplotlib import animation
 Nx = 401
 x = np.linspace(-2., 2., Nx)
-tend = 1./1.3
-Nt = 1000
-# dt, Nt = 0.01, 1001
-dt = tend / Nt
+dt, Nt = 0.01, 1001
+tend = dt * (Nt-1.)
 t = np.linspace(0., tend, Nt)
 c1,x1,s1,f1 = 1,0.5,0.6,1.3
 c2,x2,s2,f2 = 1.2,-0.5,0.3,4.1
@@ -24,8 +22,6 @@ if 1:
     fig, ax = plt.subplots()
     ax.set_ylim(-2, 2)
     ax.set_xlim(0, len(Y[:, 0]))
-    ax.set_xlabel('location (x)')
-    ax.set_ylabel('f')
     line, = ax.plot(np.arange(len(Y[:, 0])), Y[:, 0], color='k', lw=2)
     # plt.show()
     # exit()
@@ -34,11 +30,7 @@ if 1:
         # line.set_ydata(Y[:, i])
         return line,
     anim = animation.FuncAnimation(fig, animate,frames=np.arange(Nt), interval=50, )#blit=True
-    # Set up formatting for the movie files
-    Writer = animation.writers['ffmpeg']
-    writer = Writer(fps=200, metadata=dict(artist='Me'), bitrate=1800)
-    anim.save('1d_test.mp4', writer=writer)
-    # plt.show()
+    plt.show()
     exit()
 # plt.plot(x, y1)
 # plt.plot(x, y2)
