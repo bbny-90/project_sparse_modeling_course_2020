@@ -23,11 +23,10 @@ else:
     all_data_downsampled = np.load(in_folder + "all_downsampled.npy")
 
 _, num_pix = all_data_downsampled.shape
-all_data_downsampled = all_data_downsampled.T
-meas_indx = np.random.choice(num_pix, int(num_pix*0.01), replace=False)
+meas_indx = np.random.choice(num_pix, int(num_pix*0.05), replace=False)
 if 0:
     for i in range(1, 300):
-        plt.matshow(all_data_downsampled[:, i].reshape(53, 53))
+        plt.matshow(all_data_downsampled[i, :].reshape(53, 53))
         # meas_x, meas_y = np.unravel_index(meas_indx, (53,53))
         # plt.plot(meas_x, meas_y, 'ro')
         plt.show()
@@ -37,44 +36,24 @@ if 0:
 
 rand_indx = np.arange(num_total_data)
 np.random.shuffle(rand_indx)
-all_data_downsampled = all_data_downsampled[:, rand_indx]
 train_indx = int(0.8*num_total_data)
 
-# mean = np.mean(all_data_downsampled, axis=1)
-# std = np.std(all_data_downsampled, axis=1)
+# mean = np.mean(all_data_downsampled, axis=0)
+# std = np.std(all_data_downsampled, axis=0)
 # all_data_downsampled -= mean
 # all_data_downsampled = all_data_downsampled / std
-# all_data_downsampled /= np.max(all_data_downsampled, axis=0)
+all_data_downsampled /= np.max(all_data_downsampled, axis=0)
 
-train_data = all_data_downsampled[meas_indx, 0:train_indx]
-target_field_id = train_indx + 2
-if 1:
-    plt.matshow(all_data_downsampled[:, target_field_id].reshape(53, 53))
-    meas_x, meas_y = np.unravel_index(meas_indx, (53,53))
-    plt.plot(meas_x, meas_y, 'wx')
-    plt.show()
-    # exit()
-y = all_data_downsampled[meas_indx, target_field_id]
+train_data = all_data_downsampled[0:train_indx, meas_indx]
+target_field_id = train_indx + 5
+y = all_data_downsampled[target_field_id, meas_indx]
 
 
-w = cvx.Variable(train_indx)
-loss = cvx.sum_squares(train_data @ w - y )/2 + lamda * cvx.norm(w,1)
+w = cvx.Variable(train_data.shape[0])
+loss = cvx.sum_squares(train_data.T @ w - y )/2 + lamda * cvx.norm(w,1)
 
 problem = cvx.Problem(cvx.Minimize(loss))
 problem.solve(verbose=True) 
 opt = problem.value
 print('Optimal Objective function value is: {}'.format(opt))
 print(w.value)
-plt.stem(w.value)
-plt.show()
-
-w_  = np.zeros_like(w.value)
-active_indx = np.where(w.value>0.05)
-w_[active_indx] = w.value[active_indx]
-y_recov = all_data_downsampled[:, 0:train_indx] @ w_
-plt.matshow(y_recov.reshape(53, 53))
-plt.show()
-
-plt.matshow(y_recov.reshape(53, 53)-all_data_downsampled[:, target_field_id].reshape(53, 53))
-plt.colorbar()
-plt.show()

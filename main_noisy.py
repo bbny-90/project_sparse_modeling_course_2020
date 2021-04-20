@@ -49,12 +49,15 @@ train_indx = int(0.8*num_total_data)
 train_data = all_data_downsampled[meas_indx, 0:train_indx]
 target_field_id = train_indx + 2
 if 1:
-    plt.matshow(all_data_downsampled[:, target_field_id].reshape(53, 53))
+    y_target_full = all_data_downsampled[:, target_field_id]
+    y_target_full = y_target_full + np.random.randn(len(y_target_full)) * 0.1
+    plt.matshow(y_target_full.reshape(53, 53))
+    plt.colorbar()
     meas_x, meas_y = np.unravel_index(meas_indx, (53,53))
     plt.plot(meas_x, meas_y, 'wx')
     plt.show()
     # exit()
-y = all_data_downsampled[meas_indx, target_field_id]
+y = y_target_full[meas_indx]
 
 
 w = cvx.Variable(train_indx)
@@ -69,10 +72,11 @@ plt.stem(w.value)
 plt.show()
 
 w_  = np.zeros_like(w.value)
-active_indx = np.where(w.value>0.05)
+active_indx = np.where(abs(w.value)>0.05)
 w_[active_indx] = w.value[active_indx]
 y_recov = all_data_downsampled[:, 0:train_indx] @ w_
 plt.matshow(y_recov.reshape(53, 53))
+plt.colorbar()
 plt.show()
 
 plt.matshow(y_recov.reshape(53, 53)-all_data_downsampled[:, target_field_id].reshape(53, 53))
