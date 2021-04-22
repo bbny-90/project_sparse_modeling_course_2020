@@ -47,7 +47,7 @@ The idea of using sparse modeling to reconstruct a mechanical field is first int
 In this project, we assume that governing equations of the heat transfer experiment are completely known to use and the actual experimental data should satisfy the conservation of energy if the experiment is conducted perfectly fine without noise. Therefore, we hypothesize that if sufficiently many admissible solutions (e.g., from a numerical simulator) are collected with the same boundary condition as the actual experiment, then the experimental observation can be represented as a linear combination of those admissible solutions.
 
 \section{Technical Approach}
-For a state vector $y \in \mathbb{R}^n$ which represents a mechanical field, for example temperature, over a set of grid points, we are interested to find and its approximation called $y^h \in \mathbb{R}^n$ by knowing a subset of its components $y_{\text{meas}} = M y$ where $y_{\text{meas}} \in \mathbb{R}^m$ and $m<<n$. We assume that $y$ admits a linear combination of library elements $\{ \psi_j \} \in \mathbb{R}^n$ where $j=1,2,\dots,r$, hence we have:
+We follow the same line of idea presented in \cite{CallahamRobust2019,WrightRobust2008}. For a state vector $y \in \mathbb{R}^n$ which represents a mechanical field, for example temperature, over a set of grid points, we are interested to find and its approximation called $y^h \in \mathbb{R}^n$ by knowing a subset of its components $y_{\text{meas}} = M y$ where $y_{\text{meas}} \in \mathbb{R}^m$ and $m<<n$. We assume that $y$ admits a linear combination of library elements $\{ \psi_j \} \in \mathbb{R}^n$ where $j=1,2,\dots,r$, hence we have:
 \begin{equation}
 y^h \approx \mathbf{\Psi} c = 
 \begin{pmatrix}
@@ -101,16 +101,110 @@ Typically our mesh for use in FEM has a an irregular topology (see Fig. \ref{fig
 \section{Experiments}
 In this section, we first introduce a toy example which doesn't require any numerical simulator to construct the library. This allows interested reader tries the main idea with a simpler problem at hand, and also it is a good practice for verification exercise. In the second example, we solve our target heat transfer problem.
 
-\subsection{artificial data with known analytical expression}
-We generate a 1000 snapshots of a target field at different times $t \in [0, 10]$ with the following expression:
+\subsection{toy problem: artificial data with known analytical expression}
+We generate a 1000 snapshots of a target field at different times $t \in [0, 0.76]$ with the following expression:
 \begin{equation}
 y = c_1 \exp(-\frac{(x-x_1)^2}{2\sigma_1^2}) \sin(2\pi f_1 t)+
     c_2 \exp(-\frac{(x-x_2)^2}{2\sigma_2^2}) \sin(2\pi f_2 t).
 \end{equation}
-The parameters we used for data generation are $c_1=1$, $x_1=0.5$, $\sigma_1=0.6$, $f_1=1.3$, $c_2=1.2$, $x_2=-0.5$, $\sigma_2=0.3$, and $f_2=4.1$. We regularly sample spatial coordinate $x \in [-2, 2]$ with 400 points. 300 snapshots are randomly selected to built our dictionary and, measurements are gathered from 8 random points among the 400 possible places on the $x$ axis. Therefore, in this problem we have $n=400$, $r=300$, and $m=8$. Note that we normalize our data along the temporal axis to have zero mean and unit standard deviation.
+The parameters we used for data generation are $c_1=1$, $x_1=0.5$, $\sigma_1=0.6$, $f_1=1.3$, $c_2=1.2$, $x_2=-0.5$, $\sigma_2=0.3$, and $f_2=4.1$. We regularly sample spatial coordinate $x \in [-2, 2]$ with 400 points. 500 snapshots are randomly selected to built our dictionary and, measurements are gathered from 8 random points among the 400 possible places on the $x$ axis. Therefore, in this problem we have $n=400$, $r=300$, and $m=8$. Note that we normalize our data along the temporal axis to have zero mean and unit standard deviation. Figure \ref{fig::toy-l1} shows the result of reconstructed field and coefficient vector for the basis pursuit problem when there is no noise in the measurements. Figure \ref{fig::toy-lasso} plot the same quantities but for the LASSO problem. We observe that both formulation can accurately recover the full field from just 8 random measurements, however basis pursuit approach performs three orders of magnitude better than LASSO approach in terms of normalized error defined below:
+\begin{equation}
+\text{err}(y_{\text{true}}, y_{\text{recov}}) = \frac{||y_{\text{true}}- y_{\text{recov}} ||_2}{||y_{\text{true}}||_2}.
+\end{equation} 
 
 
-\bibliography{mybibfile}
+\begin{figure}[!ht]
+  \centering
+  \includegraphics[width=0.2\textwidth]{figure/toy_l1_sol.png}
+  \hspace{0.01\textwidth}
+  \includegraphics[width=0.2\textwidth]{figure/toy_l1_coeff.png}
+  \caption{Results of basis pursuit problem. (left) recovered full field solution shown by dashed green line from a few measurements shown by cross red markers. Red curve is the ground truth, and normalized l2 error between recovered and exact solutions is 1.06e-6. (right) founded coefficient vector.}\label{fig::toy-l1}
+\end{figure}
+
+
+\begin{figure}[!ht]
+  \centering
+  \includegraphics[width=0.2\textwidth]{figure/toy_lasso_sol.png}
+  \hspace{0.01\textwidth}
+  \includegraphics[width=0.2\textwidth]{figure/toy_lasso_coeff.png}
+  \caption{Results of LASSO problem when $\lambda=0.01$. (left) recovered full field solution shown by dashed green line from a few measurements shown by cross red markers. Red curve is the ground truth, and normalized l2 error between recovered and exact solutions is 0.002. (right) founded coefficient vector. This suggested $\lambda$ is found by some trial-errors to best fit the true available solution.}\label{fig::toy-lasso}
+\end{figure}
+
+To testify the robustness of our proposed approaches, we add artificial noise to the measurements. As shown in Figs. \ref{fig::toy-l1-noisy} and \ref{fig::toy-lasso-noisy} both  approaches can recover a smooth field close to the ground truth from such a noisy sparse measurements. Although the accuracy is significantly reduced compared to noiseless recovery, still the recovery performance is acceptable. Note that in the noisy data condition, the accuracy of LASSO solution is slightly higher than basis pursuit solution. As expected, we observe the coefficient vector is sparser for basis pursuit solutions regardless of the amount of presented noise.
+
+\begin{figure}[!ht]
+  \centering
+  \includegraphics[width=0.2\textwidth]{figure/toy_l1_sol_noisy.png}
+  \hspace{0.01\textwidth}
+  \includegraphics[width=0.2\textwidth]{figure/toy_l1_coeff_noisy.png}
+  \caption{Results of basis pursuit problem when random Gaussian noise (zero mean and standard deviation 0.3) is added to the measerments. (left) recovered full field solution shown by dashed green line from a few measurements shown by cross red markers. Red curve is the ground truth, and normalized l2 error between recovered and exact solutions is 0.17. (right) founded coefficient vector.}\label{fig::toy-l1-noisy}
+\end{figure}
+
+
+\begin{figure}[!ht]
+  \centering
+  \includegraphics[width=0.2\textwidth]{figure/toy_lasso_sol_noisy.png}
+  \hspace{0.01\textwidth}
+  \includegraphics[width=0.2\textwidth]{figure/toy_lasso_coeff_noisy.png}
+  \caption{Results of LASSO problem when $\lambda=0.01$. (left) recovered full field solution shown by dashed green line from a few measurements shown by cross red markers. Red curve is the ground truth, and normalized l2 error between recovered and exact solutions is 0.1. (right) founded coefficient vector. This suggested $\lambda$ is found by some trial-errors to best fit the true available solution.}\label{fig::toy-lasso-noisy}
+\end{figure}
+
+
+
+\subsection{Two dimensional heat transfer in a heterogeneous domain}
+In this case, we generate admissible solutions by solving the heat transfer problem for the heterogeneous material shown in \ref{fig::prob-dom} using FEM. We solve the problem, for 300 time steps until the solution converges to the steady state. The temperature field in the domain is temporally normalized to have a zero mean and unit standard deviation at each pixel among all time steps. Then we choose 240 snapshots of the transient solution as elements of our dictionary; these elements are temperature solution at the ambient space and without any transformation such as Fourier transform.
+
+\begin{figure}[!ht]
+  \centering
+  \includegraphics[width=0.2\textwidth]{figure/prob-dom.png}
+  \caption{experimental sample consist of circular fibers (shown by yellow color) and surrounding matrix (shown by purple domain). In the experiment, temperature of the left boundary is set to one and right boundary has zero temperature.}\label{fig::prob-dom}
+\end{figure}
+
+To see the performance of the proposed method, we select a solution field at a random time step (see Fig. \ref{fig::sensor-heat}) which is not appeared in the dictionary. We randomly choose 2 percent of the pixels as sensors locations to observe the temperature values. These sensor locations are shown by white cross markers in Fig \ref{fig::sensor-heat}. For sparse recovery problem we only use the temperature values at these points and we do not have any access to other locations. 
+
+
+\begin{figure}[!ht]
+  \centering
+  \includegraphics[width=0.2\textwidth]{figure/sensor-heat.png}
+    \hspace{0.01\textwidth}
+    \includegraphics[width=0.23\textwidth]{figure/sensor-heat-noisy.png}
+  \caption{White cross markers are measurement locations which are randomly cover only 2 percents of pixels. In the sparse recovery task we only have access to the temperature of these locations, i.e., sensors. In (left) observations do not have any noise, but in (right) guassioan noise with zero mean an 0.1 standard deviation.}\label{fig::sensor-heat}
+\end{figure}
+
+
+
+
+\begin{figure}[!ht]
+  \centering
+  \includegraphics[width=0.2\textwidth]{figure/2d_rec_lasso.png}
+    \hspace{0.01\textwidth}
+    \includegraphics[width=0.225\textwidth]{figure/2d_rec_lasso_noisy.png}
+  \caption{(recovered solutions from noiseless (left image)and noisy (right image) measurements with LASSO algorithm. We set $\lambda$ equal to  0.01.}\label{fig::recon-2D}
+\end{figure}
+
+
+
+\begin{figure}[!ht]
+  \centering
+  \includegraphics[width=0.22\textwidth]{figure/2d_err_lasso.png}
+    \hspace{0.01\textwidth}
+    \includegraphics[width=0.225\textwidth]{figure/2d_err_lasso_noisy.png}
+  \caption{error between recovered and ground truth fields when measurements are noiseless (left image) and noisy (right image) with LASSO algorithm.}\label{fig::err-2D}
+\end{figure}
+
+
+\begin{figure}[!ht]
+  \centering
+  \includegraphics[width=0.22\textwidth]{figure/2d_coeff_lasso.png}
+    \hspace{0.01\textwidth}
+    \includegraphics[width=0.22\textwidth]{figure/2d_coeff_lasso_noisy.png}
+  \caption{founded coefficient vector by the LASSO algorithm when measurements are noiseless (left image) and noisy (right image).}\label{fig::coeff-2D}
+\end{figure}
+
+
+\section{Conclusion}
+
+
 
 \begin{thebibliography}{00}
 \bibitem{CallahamRobust2019} Callaham, Jared L., Kazuki Maeda, and Steven L. Brunton. ''Robust flow reconstruction from limited measurements via sparse representation.'' Physical Review Fluids 4.10 (2019): 103907.
