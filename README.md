@@ -1,1 +1,1 @@
-# project of sparse modeling of high-dimensional data analysis (ELENE6876)
+# project of sparse modeling of high-dimensional data (ELENE6876)
